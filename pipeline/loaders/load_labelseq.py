@@ -33,7 +33,7 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
         logger.warning("  LabelSEQ file is empty: %s", filepath.name)
         return df
 
-    # ── Gene inference from library column ────────────────────────────────
+    # Gene inference from library column 
     if "library" in df.columns:
         df["gene"] = df["library"].map(LABELSEQ_LIBRARY_TO_GENE)
         n_unmapped = df["gene"].isna().sum()
@@ -48,7 +48,7 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
         df["gene"] = pd.NA
         logger.warning("  No 'library' column found; gene cannot be inferred")
 
-    # ── Amino acid fields ─────────────────────────────────────────────────
+    # Amino acid fields
     if "Wild Type Residue" in df.columns:
         df["aa_ref"] = df["Wild Type Residue"].astype(str).str.strip().str.upper()
     if "Position" in df.columns:
@@ -56,7 +56,7 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
     if "Mutation" in df.columns:
         df["aa_alt"] = df["Mutation"].astype(str).str.strip().str.upper()
 
-    # ── HGVS-p from parts ────────────────────────────────────────────────
+    # HGVS-p from parts
     def _build_hgvs_p(row: pd.Series) -> str | None:
         ref = row.get("aa_ref")
         alt = row.get("aa_alt")
@@ -69,7 +69,7 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
 
     df["hgvs_p"] = df.apply(_build_hgvs_p, axis=1)
 
-    # ── Variant type ─────────────────────────────────────────────────────
+    # Variant type
     if "Mutation Type" in df.columns:
         from pipeline.config import VARIANT_TYPE_MAP
         df["variant_type_harmonized"] = (
@@ -78,7 +78,7 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
     else:
         df["variant_type_harmonized"] = "other"
 
-    # ── Functional score ─────────────────────────────────────────────────
+    # Functional score
     if "standard-adjusted score" in df.columns:
         df["functional_score_labelseq"] = pd.to_numeric(
             df["standard-adjusted score"], errors="coerce"
@@ -91,7 +91,7 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
         mask = df["functional_score_labelseq"].isna()
         df.loc[mask, "functional_score_labelseq"] = avg[mask]
 
-    # ── Preserve supplementary columns ───────────────────────────────────
+    # Preserve supplementary columns
     rename_supp: dict[str, str] = {}
     for col in ("Number of Barcodes", "variant_frequency",
                 "score_1", "score_2", "score_3",

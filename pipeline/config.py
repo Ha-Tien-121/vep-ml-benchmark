@@ -8,9 +8,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Paths (relative to repository root)
-# ---------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 DATA_DIR = REPO_ROOT / "Data"
@@ -20,9 +17,6 @@ DNA_FASTA_DIR = REPO_ROOT / "data" / "sequences" / "dna"
 MSA_DIR = REPO_ROOT / "data" / "msa"
 CACHE_DIR = REPO_ROOT / "data" / "cache"
 
-# ---------------------------------------------------------------------------
-# Input file manifest
-# ---------------------------------------------------------------------------
 PILLAR_FILES: list[str] = [
     "BRCA1_pillar_data.csv",
 ]
@@ -41,14 +35,8 @@ LABELSEQ_FILES: list[str] = [
     "LabelSEQ-example - Sheet1.csv",
 ]
 
-# ---------------------------------------------------------------------------
-# Genome build
-# ---------------------------------------------------------------------------
 GENOME_BUILD = "GRCh38"
 
-# ---------------------------------------------------------------------------
-# Canonical transcripts (MANE Select preferred)
-# ---------------------------------------------------------------------------
 CANONICAL_TRANSCRIPTS: dict[str, str] = {
     "BRCA1": "ENST00000357654.9",
     "LMNA": "ENST00000368300.9",
@@ -61,17 +49,10 @@ CANONICAL_REFSEQ: dict[str, str] = {
     "PTEN": "NM_000314.8",
 }
 
-# ---------------------------------------------------------------------------
-# LabelSEQ library → gene mapping
-# Populate as real library identifiers become available.
-# ---------------------------------------------------------------------------
 LABELSEQ_LIBRARY_TO_GENE: dict[str, str] = {
     # "library_name": "GENE_SYMBOL",
 }
 
-# ---------------------------------------------------------------------------
-# FisSEQ file → gene mapping (filename stem, case-insensitive)
-# ---------------------------------------------------------------------------
 FISSEQ_FILE_TO_GENE: dict[str, str] = {
     "SupplementaryTable1.csv": "LMNA",
     "SupplementaryTable2.csv": "PTEN",
@@ -79,11 +60,9 @@ FISSEQ_FILE_TO_GENE: dict[str, str] = {
     "PTENT3.merged.consensusprofiles.clustered.011725.csv": "PTEN",
 }
 
-# ---------------------------------------------------------------------------
 # Functional score orientation
 #   True  → higher value = more functional (benign)
 #   False → higher value = more dysfunctional (pathogenic) — will be inverted
-# ---------------------------------------------------------------------------
 SCORE_ORIENTATION: dict[str, bool | None] = {
     "pillar": True,
     "labelseq": True,
@@ -91,26 +70,15 @@ SCORE_ORIENTATION: dict[str, bool | None] = {
     "vampseq": None,
 }
 
-# ---------------------------------------------------------------------------
-# Consensus functional label thresholds (applied to normalised [0, 1] score)
-# ---------------------------------------------------------------------------
 CONSENSUS_LOF_THRESHOLD = 0.3
 CONSENSUS_FUNC_THRESHOLD = 0.7
 
-# ---------------------------------------------------------------------------
-# Conflict detection threshold
-# ---------------------------------------------------------------------------
 CONFLICT_SCORE_THRESHOLD = 0.4
 
-# ---------------------------------------------------------------------------
 # Minimum coverage for QC flags
-# ---------------------------------------------------------------------------
 MIN_LABELSEQ_BARCODES = 10
 MIN_FISSEQ_CELLS = 100
 
-# ---------------------------------------------------------------------------
-# Variant-type controlled vocabulary mapping
-# ---------------------------------------------------------------------------
 VARIANT_TYPE_MAP: dict[str, str] = {
     "Missense": "missense",
     "missense": "missense",
@@ -136,7 +104,6 @@ VARIANT_TYPE_MAP: dict[str, str] = {
     "other": "other",
 }
 
-# Three-letter → one-letter amino acid codes
 AA3TO1: dict[str, str] = {
     "Ala": "A", "Arg": "R", "Asn": "N", "Asp": "D", "Cys": "C",
     "Glu": "E", "Gln": "Q", "Gly": "G", "His": "H", "Ile": "I",
@@ -147,9 +114,6 @@ AA3TO1: dict[str, str] = {
 
 AA1TO3: dict[str, str] = {v: k for k, v in AA3TO1.items()}
 
-# ---------------------------------------------------------------------------
-# Required columns in the final unified dataframe
-# ---------------------------------------------------------------------------
 REQUIRED_COLUMNS: list[str] = [
     "variant_id",
     "gene",

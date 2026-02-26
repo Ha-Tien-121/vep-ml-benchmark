@@ -47,8 +47,6 @@ def _infer_gene(filename: str) -> str:
     return "UNKNOWN"
 
 
-# ── Supplementary summary tables ──────────────────────────────────────────
-
 # Supp1 (LMNA) column rename
 _SUPP1_RENAME: dict[str, str] = {
     "Morphological Impact Score": "functional_score_fisseq",
@@ -201,8 +199,6 @@ def load_fisseq_supp(filepath: str | Path) -> pd.DataFrame:
 
     return df
 
-
-# ── Feature matrices ──────────────────────────────────────────────────────
 
 def load_fisseq_features(filepath: str | Path) -> pd.DataFrame:
     """Load a FisSEQ morphology feature matrix.

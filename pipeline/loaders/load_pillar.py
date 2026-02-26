@@ -78,7 +78,7 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
     df = pd.read_csv(filepath, low_memory=False)
     logger.info("  Raw shape: %d rows x %d cols", *df.shape)
 
-    # --- SpliceAI max delta score (before rename) -------------------------
+    # SpliceAI max delta score (before rename)
     splice_present = [c for c in _SPLICEAI_DS_COLS if c in df.columns]
     if splice_present:
         df["spliceai_max_ds"] = (
@@ -89,7 +89,7 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
     else:
         df["spliceai_max_ds"] = np.nan
 
-    # --- Rename core columns -----------------------------------------------
+    # Rename core columns
     rename_map = {k: v for k, v in _RENAME.items() if k in df.columns}
     df = df.rename(columns=rename_map)
 
@@ -100,7 +100,7 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
         if col not in already and col not in renamed_targets:
             df = df.rename(columns={col: f"pillar__{col}"})
 
-    # --- Coerce types -------------------------------------------------------
+    # Coerce types
     df["hg38_pos"] = pd.to_numeric(df["hg38_pos"], errors="coerce").astype("Int64")
     df["hg19_pos"] = pd.to_numeric(df.get("hg19_pos"), errors="coerce").astype("Int64")
     df["aa_pos"] = pd.to_numeric(df["aa_pos"], errors="coerce").astype("Int64")
@@ -112,7 +112,7 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
     )
     df["strand"] = pd.to_numeric(df.get("strand"), errors="coerce").astype("Int64")
 
-    # --- Genomic coordinate (primary merge key) ----------------------------
+    # Genomic coordinate (primary merge key)
     df["chrom"] = df["chrom"].astype(str).str.replace("^chr", "", regex=True)
     df["chrom"] = "chr" + df["chrom"]
     df["genomic_coord"] = (
@@ -129,7 +129,7 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
     )
     df.loc[bad_coord, "genomic_coord"] = pd.NA
 
-    # --- Harmonise variant type --------------------------------------------
+    # Harmonise variant type
     if "simplified_consequence" in df.columns:
         df["variant_type_harmonized"] = (
             df["simplified_consequence"]
@@ -139,7 +139,7 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
     else:
         df["variant_type_harmonized"] = "other"
 
-    # --- Provenance ---------------------------------------------------------
+    # Provenance
     df["coord_mapping_method"] = "direct"
     df["_source"] = "pillar"
     df["source_file"] = filepath.name
