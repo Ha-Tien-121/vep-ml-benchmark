@@ -18,7 +18,7 @@ MSA_DIR = REPO_ROOT / "data" / "msa"
 CACHE_DIR = REPO_ROOT / "data" / "cache"
 
 PILLAR_FILES: list[str] = [
-    "BRCA1_pillar_data.csv",
+    "final_pillar_data_with_clinvar_18_25_gnomad_wREVEL_wAM_wspliceAI_wMutpred2_wtrainvar_gold_standards_condensed_111225.csv.gz",
 ]
 
 FISSEQ_SUPP_FILES: dict[str, str] = {
@@ -113,6 +113,32 @@ AA3TO1: dict[str, str] = {
 }
 
 AA1TO3: dict[str, str] = {v: k for k, v in AA3TO1.items()}
+
+# ── Scorer configuration ─────────────────────────────────────────────
+ALPHAMISSENSE_ZENODO_URL = (
+    "https://zenodo.org/records/8208688/files/AlphaMissense_hg38.tsv.gz"
+)
+ALPHAMISSENSE_DB_PATH = CACHE_DIR / "alphamissense_hg38.db"
+
+ESM_DEFAULT_MODEL = "esmc_300m"
+EVO2_DEFAULT_MODEL = "evo2_7b"
+
+SCORER_CACHE_DIR = CACHE_DIR / "scorer_results"
+GENE_METADATA_CACHE_PATH = CACHE_DIR / "gene_metadata.json"
+
+# Auto-discovery: when True, the pipeline scans Data/ for datasets by column
+# signature instead of relying solely on the hardcoded file lists above.
+# Set to False to use only the explicit PILLAR_FILES / FISSEQ_SUPP_FILES lists.
+AUTO_DISCOVER_DATASETS = True
+
+# ── Finetuning configuration ─────────────────────────────────────────
+FINETUNING_OUTPUT_DIR = OUTPUT_DIR / "finetuning"
+FINETUNING_SPLIT_RATIOS: dict[str, float] = {
+    "train": 0.70,
+    "val": 0.15,
+    "test": 0.15,
+}
+FINETUNING_SEED = 42
 
 REQUIRED_COLUMNS: list[str] = [
     "variant_id",

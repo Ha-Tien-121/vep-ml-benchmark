@@ -21,6 +21,9 @@ def export_dataframe(df: pd.DataFrame, output_dir: Path | None = None) -> None:
     csv_path = out / "benchmark_dataframe.csv"
     summary_path = out / "summary_statistics.txt"
 
+    # Coerce mixed-type columns so pyarrow doesn't choke
+    df = _sanitize_for_parquet(df)
+
     # Save Parquet 
     df.to_parquet(parquet_path, index=False, engine="pyarrow")
     logger.info("Saved %s (%d rows x %d cols)", parquet_path.name, *df.shape)
@@ -36,6 +39,22 @@ def export_dataframe(df: pd.DataFrame, output_dir: Path | None = None) -> None:
 
     # Print to stdout as well
     print("\n" + "\n".join(lines))
+
+
+def _sanitize_for_parquet(df: pd.DataFrame) -> pd.DataFrame:
+    """Fix mixed-type object columns that pyarrow cannot serialize."""
+    df = df.copy()
+    for col in df.columns:
+        if df[col].dtype == object:
+            # Try numeric coercion first; keep as string if that fails
+            numeric = pd.to_numeric(df[col], errors="coerce")
+            non_null_orig = df[col].notna().sum()
+            non_null_num = numeric.notna().sum()
+            if non_null_num >= non_null_orig * 0.5 and non_null_num > 0:
+                df[col] = numeric
+            else:
+                df[col] = df[col].astype(str).replace("nan", pd.NA).replace("None", pd.NA)
+    return df
 
 
 def _build_summary(df: pd.DataFrame) -> list[str]:

@@ -63,6 +63,16 @@ _SPLICEAI_DS_COLS = [
 ]
 
 
+def _take_first_caret(series: pd.Series) -> pd.Series:
+    """Extract the first value from caret-separated multi-position fields.
+
+    Many Pillar rows encode amino-acid-level variants with multiple codon
+    positions/alleles joined by ``^`` (e.g. ``3476163.0^3476163.0``).
+    This helper takes the first token so downstream numeric coercion works.
+    """
+    return series.astype(str).str.split("^", n=1).str[0].replace({"nan": pd.NA, "": pd.NA, "None": pd.NA})
+
+
 def load_pillar(filepath: str | Path) -> pd.DataFrame:
     """Read a Pillar CSV, rename to unified schema, and compute derived columns.
 
@@ -89,6 +99,20 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
     else:
         df["spliceai_max_ds"] = np.nan
 
+    # ── Handle caret-separated multi-position fields ─────────────────
+    # AA-level variants can have values like "3476163.0^3476163.0" for
+    # hg38_start, "A^ACT^ACT" for ref_allele, etc.  We keep the full
+    # raw values as pillar__*_raw and extract the first token for the
+    # unified columns.
+    caret_cols = ["hg38_start", "hg38_end", "hg19_pos", "ref_allele", "alt_allele"]
+    for col in caret_cols:
+        if col in df.columns and df[col].astype(str).str.contains(r"\^", na=False).any():
+            raw_name = f"{col}_raw"
+            df[raw_name] = df[col]  # preserve full value
+            df[col] = _take_first_caret(df[col])
+            n_split = df[raw_name].astype(str).str.contains(r"\^", na=False).sum()
+            logger.info("  %s: extracted first token from %d caret-separated values", col, n_split)
+
     # Rename core columns
     rename_map = {k: v for k, v in _RENAME.items() if k in df.columns}
     df = df.rename(columns=rename_map)
@@ -112,22 +136,22 @@ def load_pillar(filepath: str | Path) -> pd.DataFrame:
     )
     df["strand"] = pd.to_numeric(df.get("strand"), errors="coerce").astype("Int64")
 
-    # Genomic coordinate (primary merge key)
+    # Genomic coordinate (primary merge key) — only build where all parts exist
     df["chrom"] = df["chrom"].astype(str).str.replace("^chr", "", regex=True)
     df["chrom"] = "chr" + df["chrom"]
-    df["genomic_coord"] = (
-        df["chrom"].astype(str)
-        + ":" + df["hg38_pos"].astype(str)
-        + ":" + df["ref_allele"].astype(str)
-        + ":" + df["alt_allele"].astype(str)
+
+    has_all = (
+        df["hg38_pos"].notna()
+        & df["ref_allele"].notna()
+        & df["alt_allele"].notna()
     )
-    # Null-out rows where critical fields are missing
-    bad_coord = (
-        df["hg38_pos"].isna()
-        | df["ref_allele"].isna()
-        | df["alt_allele"].isna()
+    df["genomic_coord"] = pd.NA
+    df.loc[has_all, "genomic_coord"] = (
+        df.loc[has_all, "chrom"].astype(str)
+        + ":" + df.loc[has_all, "hg38_pos"].astype(str)
+        + ":" + df.loc[has_all, "ref_allele"].astype(str)
+        + ":" + df.loc[has_all, "alt_allele"].astype(str)
     )
-    df.loc[bad_coord, "genomic_coord"] = pd.NA
 
     # Harmonise variant type
     if "simplified_consequence" in df.columns:
