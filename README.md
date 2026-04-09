@@ -9,9 +9,6 @@ Automated, reproducible pipeline for **Variant Effect Prediction** benchmarking.
 git clone <repo-url>
 cd vep-ml-benchmark
 pip install -e .                    # core dependencies only
-pip install -e ".[cpu]"             # + PyTorch + ESM (CPU inference)
-pip install -e ".[gpu]"             # + PyTorch + ESM + Evo2 (GPU inference)
-pip install -e ".[dev]"             # + pytest + ruff
 
 # 2. Run the pipeline
 python -m pipeline -v               # full pipeline (load, merge, transform, score, export)
