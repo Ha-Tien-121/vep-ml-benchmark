@@ -32,8 +32,24 @@ FISSEQ_FEATURE_FILES: dict[str, str] = {
 }
 
 LABELSEQ_FILES: list[str] = [
-    "LabelSEQ-example - Sheet1.csv",
+    "250601_LABELseq_scores(2).tsv",
+    "Replicate_scores_IGVF_submission_260225.tsv",
 ]
+
+VAMPSEQ_FILES: list[str] = [
+    "urn_mavedb_00001266-b-1_custom.csv",
+    "urn_mavedb_00001267-a-1_custom.csv",
+    "urn_mavedb_00001267-b-1_custom.csv",
+    "2026025_TSC2_lib1_scores_with_consequences.csv",
+    "2026025_TSC2_lib2_scores_with_consequences.csv",
+    "20260217_TSC2_lib1_scores.csv",
+    "20260217_TSC2_lib2_scores.csv",
+]
+
+VAMPSEQ_REFSEQ_TO_GENE: dict[str, str] = {
+    "NP_001346945.1": "G6PD",
+    "NP_000539.2": "TSC2",
+}
 
 GENOME_BUILD = "GRCh38"
 
@@ -41,16 +57,104 @@ CANONICAL_TRANSCRIPTS: dict[str, str] = {
     "BRCA1": "ENST00000357654.9",
     "LMNA": "ENST00000368300.9",
     "PTEN": "ENST00000371953.8",
+    "G6PD": "ENST00000393562.5",
+    "TSC2": "ENST00000219476.9",
+    "KRAS": "ENST00000256078.9",
+    "ARAF": "ENST00000264025.7",
+    "BRAF": "ENST00000288602.11",
+    "RAF1": "ENST00000251849.9",
+    "MAP2K1": "ENST00000307102.8",
+    "MAP2K2": "ENST00000262948.5",
+    "EGFR": "ENST00000275493.7",
+    "ERBB2": "ENST00000269571.10",
+    "SOS1": "ENST00000402219.3",
+    "SOS2": "ENST00000263979.7",
+    "PTPN11": "ENST00000351677.8",
+    "GRB2": "ENST00000309845.9",
+    "KSR1": "ENST00000262174.6",
+    "KSR2": "ENST00000358624.8",
+    "MET": "ENST00000397752.8",
+    "MRAS": "ENST00000394102.5",
+    "RET": "ENST00000355710.8",
 }
 
 CANONICAL_REFSEQ: dict[str, str] = {
     "BRCA1": "NM_007294.3",
     "LMNA": "NM_170707.4",
     "PTEN": "NM_000314.8",
+    "G6PD": "NM_001360016.2",
+    "TSC2": "NM_000548.5",
+    "KRAS": "NM_004985.5",
+    "ARAF": "NM_001654.6",
+    "BRAF": "NM_004333.6",
+    "RAF1": "NM_002880.4",
+    "MAP2K1": "NM_002755.4",
+    "MAP2K2": "NM_030662.4",
+    "EGFR": "NM_005228.5",
+    "ERBB2": "NM_004448.4",
+    "SOS1": "NM_005633.4",
+    "SOS2": "NM_006937.3",
+    "PTPN11": "NM_002834.5",
+    "GRB2": "NM_002086.5",
+    "KSR1": "NM_014238.3",
+    "KSR2": "NM_173598.3",
+    "MET": "NM_000245.4",
+    "MRAS": "NM_012219.4",
+    "RET": "NM_020630.6",
 }
 
 LABELSEQ_LIBRARY_TO_GENE: dict[str, str] = {
-    # "library_name": "GENE_SYMBOL",
+    # KRAS
+    "kras": "KRAS",
+    "MCP-kras": "KRAS",
+    # ARAF
+    "araf": "ARAF",
+    "araf_cterm": "ARAF",
+    "araf_nterm": "ARAF",
+    "MCP-araf_nterm": "ARAF",
+    # BRAF
+    "braf_cterm": "BRAF",
+    "braf_nterm": "BRAF",
+    "MCP-braf_cterm": "BRAF",
+    "MCP-braf_nterm": "BRAF",
+    # RAF1 (CRAF)
+    "craf_cterm": "RAF1",
+    "craf_nterm": "RAF1",
+    "MCP-craf_cterm": "RAF1",
+    "MCP-craf_nterm": "RAF1",
+    # MAP2K1 (MEK1)
+    "MEK1": "MAP2K1",
+    "mek1": "MAP2K1",
+    # MAP2K2 (MEK2)
+    "mek2": "MAP2K2",
+    # EGFR
+    "EGFR": "EGFR",
+    "EGFR-MCP": "EGFR",
+    "egfr": "EGFR",
+    # ERBB2
+    "ERBB2-MCP": "ERBB2",
+    "erbb2": "ERBB2",
+    # SOS1
+    "SOS1-MCP": "SOS1",
+    "sos1": "SOS1",
+    # SOS2
+    "sos2": "SOS2",
+    # PTPN11 (SHP2)
+    "MCP-SHP2": "PTPN11",
+    "shp2": "PTPN11",
+    # GRB2
+    "grb2": "GRB2",
+    # KSR1
+    "ksr1_cterm": "KSR1",
+    "ksr1_nterm": "KSR1",
+    # KSR2
+    "ksr2_cterm": "KSR2",
+    # MET
+    "met": "MET",
+    # MRAS
+    "mras": "MRAS",
+    # RET
+    "ret": "RET",
 }
 
 FISSEQ_FILE_TO_GENE: dict[str, str] = {
@@ -67,7 +171,7 @@ SCORE_ORIENTATION: dict[str, bool | None] = {
     "pillar": True,
     "labelseq": True,
     "fisseq": False,
-    "vampseq": None,
+    "vampseq": True,  # higher VAMP-seq score = more stable/functional (benign)
 }
 
 CONSENSUS_LOF_THRESHOLD = 0.3

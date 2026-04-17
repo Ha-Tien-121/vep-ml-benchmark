@@ -27,6 +27,10 @@ _LOADER_REQUIRED: dict[str, dict[str, list[str]]] = {
         "critical": ["aa_ref", "aa_pos", "aa_alt"],
         "expected": ["gene", "functional_score_labelseq", "variant_type_harmonized"],
     },
+    "vampseq": {
+        "critical": ["aa_ref", "aa_pos", "aa_alt", "functional_score_vampseq"],
+        "expected": ["gene", "hgvs_p", "variant_type_harmonized"],
+    },
 }
 
 _MERGED_REQUIRED = [

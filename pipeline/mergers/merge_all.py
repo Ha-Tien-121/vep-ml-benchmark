@@ -21,6 +21,11 @@ _SHARED_IDENTITY = {
     "refseq_transcript_id",
 }
 
+# Internal metadata columns that should never be carried from the right side;
+# they are set per-row by each loader and would cause duplicate-column conflicts
+# when the same source label is merged more than once.
+_RIGHT_EXCLUDE = {"coord_mapping_method", "source_file", "_source"}
+
 
 def _merge_source(
     left: pd.DataFrame,
@@ -68,10 +73,11 @@ def _merge_source(
         source_label, len(right_coord), len(right_protein), len(right_rest),
     )
 
-    # Columns to drop from right to avoid _x/_y duplication
+    # Columns to carry from right: exclude shared-identity fields (handled by
+    # backfill) and internal metadata columns that live on the left side already.
     right_only = lambda df_r, merge_keys: [
         c for c in df_r.columns
-        if c not in _SHARED_IDENTITY or c in merge_keys
+        if (c not in _SHARED_IDENTITY and c not in _RIGHT_EXCLUDE) or c in merge_keys
     ]
 
     # ── (1) Merge on genomic_coord ───────────────────────────────────────
@@ -161,11 +167,12 @@ def merge_all(
     pillar: pd.DataFrame,
     labelseq_frames: list[pd.DataFrame],
     fisseq_frames: list[pd.DataFrame],
+    fisseq_feature_frames: list[pd.DataFrame] | None = None,
     vampseq_frames: list[pd.DataFrame] | None = None,
 ) -> pd.DataFrame:
     """Outer-merge all source dataframes.
 
-    Merge order: Pillar -> LabelSEQ -> FisSEQ -> VampSEQ.
+    Merge order: Pillar -> LabelSEQ -> FisSEQ -> FisSEQ features -> VampSEQ.
     Uses genomic_coord as primary key with (gene, aa_pos, aa_ref, aa_alt)
     as protein-level fallback for sources without genomic coordinates.
     """
@@ -180,9 +187,21 @@ def merge_all(
         gene_tag = fs["gene"].iloc[0] if "gene" in fs.columns and len(fs) > 0 else "unknown"
         master = _merge_source(master, fs, f"fisseq_{gene_tag}".lower())
 
+    if fisseq_feature_frames:
+        fisseq_features_combined = pd.concat(fisseq_feature_frames, ignore_index=True)
+        logger.info(
+            "  Combined %d FisSEQ feature frames into %d rows",
+            len(fisseq_feature_frames), len(fisseq_features_combined),
+        )
+        master = _merge_source(master, fisseq_features_combined, "fisseq_features")
+
     if vampseq_frames:
-        for vs in vampseq_frames:
-            master = _merge_source(master, vs, "vampseq")
+        vampseq_combined = pd.concat(vampseq_frames, ignore_index=True)
+        logger.info(
+            "  Combined %d VampSEQ frames into %d rows",
+            len(vampseq_frames), len(vampseq_combined),
+        )
+        master = _merge_source(master, vampseq_combined, "vampseq")
 
     logger.info("Final merged dataframe: %d rows x %d cols", *master.shape)
     return master

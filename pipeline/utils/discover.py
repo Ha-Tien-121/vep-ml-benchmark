@@ -54,7 +54,11 @@ _FISSEQ_SUPP_SIGNATURE = {"Variant", "Morphological Impact Score"}
 _FISSEQ_SUPP2_SIGNATURE = {"Variant", "Morphological Impact Score iPSC"}
 _FISSEQ_FEATURES_SIGNATURE = {"Variant", "Variant_Class"}
 _LABELSEQ_SIGNATURE = {"Wild Type Residue", "Position", "Mutation"}
-_VAMPSEQ_SIGNATURE = {"variant", "vampseq_score"}  # placeholder
+_VAMPSEQ_SIGNATURE = {"hgvs_pro", "scores.score", "mavedb.post_mapped_hgvs_p"}
+# Processed abundance format (e.g. TSC2 _with_consequences files): has QC_flag
+_VAMPSEQ_ABUNDANCE_SIGNATURE = {"variant", "abundance_avg", "QC_flag"}
+# Raw abundance format (e.g. 20260217_TSC2_lib*.csv): has aaChanges but no QC_flag
+_VAMPSEQ_RAW_ABUNDANCE_SIGNATURE = {"aaChanges", "variant", "abundance_avg"}
 
 
 def _detect_source_type(filepath: Path) -> str | None:
@@ -82,6 +86,10 @@ def _detect_source_type(filepath: Path) -> str | None:
         return "labelseq"
     if _VAMPSEQ_SIGNATURE.issubset(cols):
         return "vampseq"
+    if _VAMPSEQ_ABUNDANCE_SIGNATURE.issubset(cols):
+        return "vampseq"
+    if _VAMPSEQ_RAW_ABUNDANCE_SIGNATURE.issubset(cols):
+        return "vampseq"
 
     return None
 
@@ -97,6 +105,9 @@ def _infer_gene_from_filename(name: str) -> str | None:
         "CARD11", "KCNE1", "KCNQ4", "LARGE1", "SGCB", "NDUFAF6", "CRX",
         "CTCF", "TPK1", "FKRP", "RAD51D", "XRCC2", "JAG1", "SFPQ",
         "OTC", "TARDBP", "SCN5A", "RHO",
+        "KRAS", "ARAF", "BRAF", "RAF1", "MAP2K1", "MAP2K2",
+        "EGFR", "ERBB2", "SOS1", "SOS2", "PTPN11", "GRB2",
+        "KSR1", "KSR2", "MET", "MRAS", "RET",
     ]
     for gene in known_genes:
         if gene.lower() in name_lower:

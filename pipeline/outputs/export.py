@@ -29,8 +29,14 @@ def export_dataframe(df: pd.DataFrame, output_dir: Path | None = None) -> None:
     logger.info("Saved %s (%d rows x %d cols)", parquet_path.name, *df.shape)
 
     # Save CSV
-    df.to_csv(csv_path, index=False)
-    logger.info("Saved %s", csv_path.name)
+    try:
+        df.to_csv(csv_path, index=False)
+        logger.info("Saved %s", csv_path.name)
+    except PermissionError:
+        logger.warning(
+            "Cannot write %s (file may be open in another program). "
+            "Parquet output is still available.", csv_path.name,
+        )
 
     # Summary statistics
     lines = _build_summary(df)
@@ -44,16 +50,23 @@ def export_dataframe(df: pd.DataFrame, output_dir: Path | None = None) -> None:
 def _sanitize_for_parquet(df: pd.DataFrame) -> pd.DataFrame:
     """Fix mixed-type object columns that pyarrow cannot serialize."""
     df = df.copy()
+
+    # Deduplicate column names (keep first occurrence)
+    if df.columns.duplicated().any():
+        dupes = df.columns[df.columns.duplicated()].unique().tolist()
+        logger.warning("Dropping %d duplicate column names: %s", len(dupes), dupes[:10])
+        df = df.loc[:, ~df.columns.duplicated()]
+
     for col in df.columns:
-        if df[col].dtype == object:
-            # Try numeric coercion first; keep as string if that fails
-            numeric = pd.to_numeric(df[col], errors="coerce")
-            non_null_orig = df[col].notna().sum()
+        series = df[col]
+        if series.dtype == object:
+            numeric = pd.to_numeric(series, errors="coerce")
+            non_null_orig = series.notna().sum()
             non_null_num = numeric.notna().sum()
             if non_null_num >= non_null_orig * 0.5 and non_null_num > 0:
                 df[col] = numeric
             else:
-                df[col] = df[col].astype(str).replace("nan", pd.NA).replace("None", pd.NA)
+                df[col] = series.astype(str).replace("nan", pd.NA).replace("None", pd.NA)
     return df
 
 

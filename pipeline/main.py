@@ -26,11 +26,13 @@ import pandas as pd
 from pipeline.config import (
     AUTO_DISCOVER_DATASETS,
     DATA_DIR,
+    FISSEQ_FEATURE_FILES,
     FISSEQ_SUPP_FILES,
     FINETUNING_OUTPUT_DIR,
     LABELSEQ_FILES,
     OUTPUT_DIR,
     PILLAR_FILES,
+    VAMPSEQ_FILES,
 )
 
 logger = logging.getLogger("pipeline")
@@ -45,8 +47,10 @@ def _setup_logging(verbose: bool = False) -> None:
 def _load_datasets_explicit(data_dir: Path):
     """Load datasets from hardcoded file lists in config.py."""
     from pipeline.loaders.load_fisseq import load_fisseq_supp
+    from pipeline.loaders.load_fisseq import load_fisseq_features
     from pipeline.loaders.load_labelseq import load_labelseq
     from pipeline.loaders.load_pillar import load_pillar
+    from pipeline.loaders.load_vampseq import load_vampseq
 
     pillar_frames: list[pd.DataFrame] = []
     for fname in PILLAR_FILES:
@@ -64,6 +68,14 @@ def _load_datasets_explicit(data_dir: Path):
         else:
             logger.warning("FisSEQ file missing: %s", path)
 
+    fisseq_feature_frames: list[pd.DataFrame] = []
+    for fname in FISSEQ_FEATURE_FILES:
+        path = data_dir / fname
+        if path.exists():
+            fisseq_feature_frames.append(load_fisseq_features(path))
+        else:
+            logger.warning("FisSEQ feature file missing: %s", path)
+
     labelseq_frames: list[pd.DataFrame] = []
     for fname in LABELSEQ_FILES:
         path = data_dir / fname
@@ -72,23 +84,37 @@ def _load_datasets_explicit(data_dir: Path):
         else:
             logger.warning("LabelSEQ file missing: %s", path)
 
-    return pillar_frames, fisseq_frames, labelseq_frames
+    vampseq_frames: list[pd.DataFrame] = []
+    for fname in VAMPSEQ_FILES:
+        path = data_dir / fname
+        if path.exists():
+            vampseq_frames.append(load_vampseq(path))
+        else:
+            logger.warning("VampSEQ file missing: %s", path)
+
+    return pillar_frames, fisseq_frames, fisseq_feature_frames, labelseq_frames, vampseq_frames
 
 
 def _load_datasets_discovered(data_dir: Path):
     """Load datasets via auto-discovery (column-signature detection)."""
     from pipeline.loaders.load_fisseq import load_fisseq_supp
+    from pipeline.loaders.load_fisseq import load_fisseq_features
     from pipeline.loaders.load_labelseq import load_labelseq
     from pipeline.loaders.load_pillar import load_pillar
+    from pipeline.loaders.load_vampseq import load_vampseq
     from pipeline.utils.discover import discover_datasets
 
     datasets = discover_datasets(data_dir)
 
     pillar_frames = [load_pillar(e.path) for e in datasets.pillar]
     fisseq_frames = [load_fisseq_supp(e.path) for e in datasets.fisseq_supp]
+    fisseq_feature_frames = [load_fisseq_features(e.path) for e in datasets.fisseq_features]
     labelseq_frames = [load_labelseq(e.path) for e in datasets.labelseq]
+    vampseq_frames = [
+        load_vampseq(e.path, gene_override=e.gene) for e in datasets.vampseq
+    ]
 
-    return pillar_frames, fisseq_frames, labelseq_frames
+    return pillar_frames, fisseq_frames, fisseq_feature_frames, labelseq_frames, vampseq_frames
 
 
 def run_pipeline(
@@ -118,9 +144,21 @@ def run_pipeline(
     logger.info("=" * 70)
 
     if AUTO_DISCOVER_DATASETS:
-        pillar_frames, fisseq_frames, labelseq_frames = _load_datasets_discovered(data_dir)
+        (
+            pillar_frames,
+            fisseq_frames,
+            fisseq_feature_frames,
+            labelseq_frames,
+            vampseq_frames,
+        ) = _load_datasets_discovered(data_dir)
     else:
-        pillar_frames, fisseq_frames, labelseq_frames = _load_datasets_explicit(data_dir)
+        (
+            pillar_frames,
+            fisseq_frames,
+            fisseq_feature_frames,
+            labelseq_frames,
+            vampseq_frames,
+        ) = _load_datasets_explicit(data_dir)
 
     if not pillar_frames:
         raise FileNotFoundError("No Pillar files found — cannot build benchmark dataframe.")
@@ -136,8 +174,12 @@ def run_pipeline(
         validate_loader_output(df, "pillar")
     for df in fisseq_frames:
         validate_loader_output(df, "fisseq")
+    for df in fisseq_feature_frames:
+        validate_loader_output(df, "fisseq_features")
     for df in labelseq_frames:
         validate_loader_output(df, "labelseq")
+    for df in vampseq_frames:
+        validate_loader_output(df, "vampseq")
 
     pillar = pd.concat(pillar_frames, ignore_index=True)
 
@@ -153,7 +195,8 @@ def run_pipeline(
         pillar=pillar,
         labelseq_frames=labelseq_frames,
         fisseq_frames=fisseq_frames,
-        vampseq_frames=None,
+        fisseq_feature_frames=fisseq_feature_frames or None,
+        vampseq_frames=vampseq_frames or None,
     )
     validate_merged_output(master)
 

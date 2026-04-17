@@ -1,0 +1,44 @@
+# VEP Benchmark Dataset Manifest
+# ================================
+# This file declares which data files to load and their source types.
+# To add a new dataset: place the file in Data/ and add an entry below.
+
+pillar:
+  files:
+    - path: "final_pillar_data_with_clinvar_18_25_gnomad_wREVEL_wAM_wspliceAI_wMutpred2_wtrainvar_gold_standards_condensed_111225.csv.gz"
+
+fisseq_supp:
+  files:
+    - path: "SupplementaryTable1.csv"
+      gene: LMNA
+    - path: "SupplementaryTable2.csv"
+      gene: PTEN
+
+fisseq_features:
+  files:
+    - path: "LMNA_averaged_medianplusEMD_clusterlabeled_021325.csv"
+      gene: LMNA
+    - path: "PTENT3.merged.consensusprofiles.clustered.011725.csv"
+      gene: PTEN
+
+labelseq:
+  files:
+    - path: "250601_LABELseq_scores(2).tsv"
+    - path: "Replicate_scores_IGVF_submission_260225.tsv"
+
+vampseq:
+  files:
+    - path: "urn_mavedb_00001266-b-1_custom.csv"
+      gene: G6PD
+    - path: "urn_mavedb_00001267-a-1_custom.csv"
+      gene: TSC2
+    - path: "urn_mavedb_00001267-b-1_custom.csv"
+      gene: TSC2
+    - path: "2026025_TSC2_lib1_scores_with_consequences.csv"
+      gene: TSC2
+    - path: "2026025_TSC2_lib2_scores_with_consequences.csv"
+      gene: TSC2
+    - path: "20260217_TSC2_lib1_scores.csv"
+      gene: TSC2
+    - path: "20260217_TSC2_lib2_scores.csv"
+      gene: TSC2

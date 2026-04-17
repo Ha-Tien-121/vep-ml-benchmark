@@ -26,7 +26,10 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
     filepath = Path(filepath)
     logger.info("Loading LabelSEQ: %s", filepath.name)
 
-    df = pd.read_csv(filepath, low_memory=False)
+    sep = "\t" if filepath.suffix == ".tsv" else ","
+    df = pd.read_csv(filepath, sep=sep, low_memory=False)
+    # Drop unnamed index columns that some TSV exports include
+    df = df.loc[:, ~df.columns.str.match(r"^Unnamed")]
     logger.info("  Raw shape: %d rows x %d cols", *df.shape)
 
     if df.empty:
@@ -78,26 +81,32 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
     else:
         df["variant_type_harmonized"] = "other"
 
-    # Functional score
-    if "standard-adjusted score" in df.columns:
-        df["functional_score_labelseq"] = pd.to_numeric(
-            df["standard-adjusted score"], errors="coerce"
-        )
-    else:
-        df["functional_score_labelseq"] = pd.NA
-
-    if "average score" in df.columns:
-        avg = pd.to_numeric(df["average score"], errors="coerce")
-        mask = df["functional_score_labelseq"].isna()
-        df.loc[mask, "functional_score_labelseq"] = avg[mask]
+    # Functional score — prefer standard-adjusted, then intercept-adjusted, then average
+    _score_cols = [
+        "standard-adjusted score",
+        "intercept_0_standard-adjusted score",
+        "average score",
+    ]
+    df["functional_score_labelseq"] = pd.NA
+    for _sc in _score_cols:
+        if _sc in df.columns:
+            parsed = pd.to_numeric(df[_sc], errors="coerce")
+            mask = df["functional_score_labelseq"].isna()
+            df.loc[mask, "functional_score_labelseq"] = parsed[mask]
 
     # Preserve supplementary columns
     rename_supp: dict[str, str] = {}
     for col in ("Number of Barcodes", "variant_frequency",
                 "score_1", "score_2", "score_3",
-                "date", "library", "assay", "variant"):
+                "date", "library", "assay", "variant",
+                "assay_treatment", "classification_2.5pct",
+                "intercept_0_standard-adjusted score",
+                "intercept_0_std_adj_score_1",
+                "intercept_0_std_adj_score_2",
+                "intercept_0_std_adj_score_3",
+                "protein", "uniprot_accession"):
         if col in df.columns:
-            safe = col.lower().replace(" ", "_").replace("-", "_")
+            safe = col.lower().replace(" ", "_").replace("-", "_").replace(".", "_")
             rename_supp[col] = f"labelseq_{safe}"
     # Also rename raw columns that haven't been mapped yet
     for col in ("Wild Type Residue", "Position", "Mutation",
