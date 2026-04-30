@@ -113,7 +113,11 @@ def _identity_cols() -> list[str]:
 
 
 def _protein_cols(df: pd.DataFrame) -> list[str]:
-    """Column list for the protein modeling dataframe."""
+    """Column list for the protein modeling dataframe.
+
+    Priority order puts identity/score/sequence columns first, then appends
+    every remaining column from the dataframe so no source data is dropped.
+    """
     cols = _identity_cols()
 
     # All functional scores (raw + named variants)
@@ -134,11 +138,18 @@ def _protein_cols(df: pd.DataFrame) -> list[str]:
     cols += [c for c in df.columns if c.startswith("fisseq_")]
     cols += [c for c in df.columns if c.startswith("vampseq_")]
 
+    # Append every remaining column so no source data is dropped
+    cols += list(df.columns)
+
     return _dedup(cols)
 
 
 def _dna_cols(df: pd.DataFrame) -> list[str]:
-    """Column list for the DNA modeling dataframe."""
+    """Column list for the DNA modeling dataframe.
+
+    Priority order puts identity/coordinate/sequence columns first, then appends
+    every remaining column from the dataframe so no source data is dropped.
+    """
     cols = _identity_cols()
 
     # Genomic coordinates and transcript info
@@ -178,6 +189,9 @@ def _dna_cols(df: pd.DataFrame) -> list[str]:
         "pillar_dataset_id", "pillar_flag", "functional_class_pillar",
         "mavedb_urn", "hgnc_id",
     ]
+
+    # Append every remaining column so no source data is dropped
+    cols += list(df.columns)
 
     return _dedup(cols)
 

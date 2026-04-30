@@ -229,7 +229,8 @@ ALPHAMISSENSE_DB_PATH = CACHE_DIR / "alphamissense_hg38.db"
 # Set to None to disable SpliceAI scoring entirely.
 # Scores for variants in the master DataFrame are cached to
 # data/cache/scorer_results/spliceai_scores.parquet after the first VCF scan.
-SPLICEAI_FILE = CACHE_DIR / "spliceai_scores.raw.snv.ensembl_mane_v1.4.grch38.vcf.gz"
+# Set to a Path once the scored parquet is available from the cluster run.
+SPLICEAI_FILE = None
 
 ESM_DEFAULT_MODEL = "esmc_300m"
 EVO2_DEFAULT_MODEL = "evo2_7b"
