@@ -224,6 +224,12 @@ ALPHAMISSENSE_ZENODO_URL = (
 )
 ALPHAMISSENSE_DB_PATH = CACHE_DIR / "alphamissense_hg38.db"
 
+# SpliceAI: precomputed scores from Illumina BaseSpace (manual download required).
+# Supports VCF (.vcf, .vcf.gz) or TSV (.tsv, .tsv.gz, .txt, .csv) inputs.
+# Set to None to disable SpliceAI scoring entirely.
+SPLICEAI_FILE = CACHE_DIR / "spliceai_scores.raw.snv.ensembl_mane_v1.4.grch38.vcf.gz"
+SPLICEAI_DB_PATH = CACHE_DIR / "spliceai_hg38.db"
+
 ESM_DEFAULT_MODEL = "esmc_300m"
 EVO2_DEFAULT_MODEL = "evo2_7b"
 
@@ -266,8 +272,14 @@ REQUIRED_COLUMNS: list[str] = [
     "msa_filepath",
     "functional_score_pillar",
     "functional_score_labelseq",
+    "functional_score_labelseq_standard",
+    "functional_score_labelseq_intercept",
     "functional_score_fisseq",
     "functional_score_vampseq",
+    "normalized_score_pillar",
+    "normalized_score_labelseq",
+    "normalized_score_fisseq",
+    "normalized_score_vampseq",
     "consensus_functional_score",
     "consensus_functional_label",
     "alphamissense_score",
@@ -276,6 +288,11 @@ REQUIRED_COLUMNS: list[str] = [
     "esm3_rank",
     "evo2_score",
     "evo2_rank",
+    "spliceai_DS_AG",
+    "spliceai_DS_AL",
+    "spliceai_DS_DG",
+    "spliceai_DS_DL",
+    "spliceai_max_delta_score",
     "source_datasets",
     "coord_mapping_method",
     "is_duplicate_flag",

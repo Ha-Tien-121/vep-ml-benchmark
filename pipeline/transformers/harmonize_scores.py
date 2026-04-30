@@ -55,7 +55,7 @@ def harmonize_scores(df: pd.DataFrame) -> pd.DataFrame:
         if orient is False:
             normed = 1.0 - normed
 
-        norm_name = f"_norm_{source}"
+        norm_name = f"normalized_score_{source}"
         df[norm_name] = normed
         norm_cols.append(norm_name)
         logger.info(
@@ -113,9 +113,6 @@ def harmonize_scores(df: pd.DataFrame) -> pd.DataFrame:
                 "low_coverage_flag",
             ] = True
             break
-
-    # Clean up temp columns
-    df = df.drop(columns=norm_cols, errors="ignore")
 
     # Summary
     scores = df["consensus_functional_score"].dropna()

@@ -81,7 +81,22 @@ def load_labelseq(filepath: str | Path) -> pd.DataFrame:
     else:
         df["variant_type_harmonized"] = "other"
 
-    # Functional score — prefer standard-adjusted, then intercept-adjusted, then average
+    # Source-specific named scores (preserved separately for downstream use)
+    if "standard-adjusted score" in df.columns:
+        df["functional_score_labelseq_standard"] = pd.to_numeric(
+            df["standard-adjusted score"], errors="coerce"
+        )
+    else:
+        df["functional_score_labelseq_standard"] = pd.NA
+
+    if "intercept_0_standard-adjusted score" in df.columns:
+        df["functional_score_labelseq_intercept"] = pd.to_numeric(
+            df["intercept_0_standard-adjusted score"], errors="coerce"
+        )
+    else:
+        df["functional_score_labelseq_intercept"] = pd.NA
+
+    # Primary functional score — prefer standard-adjusted, then intercept-adjusted, then average
     _score_cols = [
         "standard-adjusted score",
         "intercept_0_standard-adjusted score",

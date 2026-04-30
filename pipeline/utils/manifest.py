@@ -54,7 +54,7 @@ def _package_versions() -> dict[str, str]:
         try:
             mod = __import__(name)
             pkgs[name] = getattr(mod, "__version__", "installed")
-        except ImportError:
+        except (ImportError, Exception):
             pkgs[name] = "not installed"
     return pkgs
 

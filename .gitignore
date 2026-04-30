@@ -38,6 +38,8 @@ data/sequences/
 # Claude Code worktrees
 .claude/
 
+.cursor/
+
 # Jupyter
 .ipynb_checkpoints/
 

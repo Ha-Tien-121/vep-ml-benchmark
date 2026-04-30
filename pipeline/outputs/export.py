@@ -13,7 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 def export_dataframe(df: pd.DataFrame, output_dir: Path | None = None) -> None:
-    """Save the master dataframe as Parquet and CSV, plus a text summary."""
+    """Save the master dataframe as Parquet and CSV, plus a text summary.
+
+    Also produces two purpose-built outputs:
+      - protein_modeling_dataframe: AA-level features for protein ML models
+      - dna_modeling_dataframe:     genomic features for DNA/sequence ML models
+    """
     out = Path(output_dir) if output_dir else OUTPUT_DIR
     out.mkdir(parents=True, exist_ok=True)
 
@@ -24,11 +29,11 @@ def export_dataframe(df: pd.DataFrame, output_dir: Path | None = None) -> None:
     # Coerce mixed-type columns so pyarrow doesn't choke
     df = _sanitize_for_parquet(df)
 
-    # Save Parquet 
+    # Save master Parquet
     df.to_parquet(parquet_path, index=False, engine="pyarrow")
     logger.info("Saved %s (%d rows x %d cols)", parquet_path.name, *df.shape)
 
-    # Save CSV
+    # Save master CSV
     try:
         df.to_csv(csv_path, index=False)
         logger.info("Saved %s", csv_path.name)
@@ -37,6 +42,12 @@ def export_dataframe(df: pd.DataFrame, output_dir: Path | None = None) -> None:
             "Cannot write %s (file may be open in another program). "
             "Parquet output is still available.", csv_path.name,
         )
+
+    # Protein modeling dataframe
+    _export_subset(df, _protein_cols(df), out, "protein_modeling_dataframe")
+
+    # DNA modeling dataframe
+    _export_subset(df, _dna_cols(df), out, "dna_modeling_dataframe")
 
     # Summary statistics
     lines = _build_summary(df)
@@ -68,6 +79,118 @@ def _sanitize_for_parquet(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 df[col] = series.astype(str).replace("nan", pd.NA).replace("None", pd.NA)
     return df
+
+
+def _export_subset(
+    df: pd.DataFrame,
+    cols: list[str],
+    out: Path,
+    name: str,
+) -> None:
+    """Save a column-subset of the master df as parquet + CSV."""
+    subset = df[[c for c in cols if c in df.columns]].copy()
+    parquet_path = out / f"{name}.parquet"
+    csv_path = out / f"{name}.csv"
+    subset.to_parquet(parquet_path, index=False, engine="pyarrow")
+    logger.info("Saved %s (%d rows x %d cols)", parquet_path.name, *subset.shape)
+    try:
+        subset.to_csv(csv_path, index=False)
+        logger.info("Saved %s", csv_path.name)
+    except PermissionError:
+        logger.warning("Cannot write %s (file open elsewhere).", csv_path.name)
+
+
+def _identity_cols() -> list[str]:
+    """Columns shared by both protein and DNA modeling dataframes."""
+    return [
+        "gene", "variant_id",
+        "aa_ref", "aa_pos", "aa_alt",
+        "hgvs_p", "protein_substitution", "protein_substitution_long",
+        "variant_type_harmonized", "source_datasets",
+        "consensus_functional_score", "consensus_functional_label",
+        "conflict_flag", "low_coverage_flag", "is_duplicate_flag",
+    ]
+
+
+def _protein_cols(df: pd.DataFrame) -> list[str]:
+    """Column list for the protein modeling dataframe."""
+    cols = _identity_cols()
+
+    # All functional scores (raw + named variants)
+    cols += [c for c in df.columns if c.startswith("functional_score_")]
+
+    # Normalized scores
+    cols += [c for c in df.columns if c.startswith("normalized_score_")]
+
+    # Protein-level model predictors
+    cols += ["alphamissense_score", "alphamissense_label", "revel_score"]
+
+    # Protein sequence
+    cols += ["sequence_protein", "sequence_id_protein", "has_protein_seq",
+             "msa_filepath", "has_msa"]
+
+    # All source supplementary cols (labelseq_, fisseq_, vampseq_)
+    cols += [c for c in df.columns if c.startswith("labelseq_")]
+    cols += [c for c in df.columns if c.startswith("fisseq_")]
+    cols += [c for c in df.columns if c.startswith("vampseq_")]
+
+    return _dedup(cols)
+
+
+def _dna_cols(df: pd.DataFrame) -> list[str]:
+    """Column list for the DNA modeling dataframe."""
+    cols = _identity_cols()
+
+    # Genomic coordinates and transcript info
+    cols += [
+        "chrom", "hg38_pos", "ref_allele", "alt_allele", "genomic_coord",
+        "hgvs_c", "hg19_pos", "strand",
+        "ensembl_transcript_id", "refseq_transcript_id",
+        "simplified_consequence", "consequence",
+        "transcript_pos", "transcript_ref", "transcript_alt",
+        "splice_measure", "gnomad_maf", "nucleotide_or_aa",
+        "coord_mapping_method",
+    ]
+
+    # Pillar primary scores
+    cols += ["functional_score_pillar", "functional_score_pillar_rep",
+             "normalized_score_pillar"]
+
+    # SpliceAI scores (precomputed + from Pillar)
+    cols += [
+        "spliceai_DS_AG", "spliceai_DS_AL", "spliceai_DS_DG", "spliceai_DS_DL",
+        "spliceai_max_delta_score", "spliceai_max_ds",
+        "pillar__spliceAI_DS_AG", "pillar__spliceAI_DS_AL",
+        "pillar__spliceAI_DS_DG", "pillar__spliceAI_DS_DL",
+        "pillar__spliceAI_DP_AG", "pillar__spliceAI_DP_AL",
+        "pillar__spliceAI_DP_DG", "pillar__spliceAI_DP_DL",
+    ]
+
+    # DNA-level model predictors
+    cols += ["esm3_score", "esm3_rank", "evo2_score", "evo2_rank"]
+
+    # DNA sequence
+    cols += ["sequence_dna", "sequence_id_dna", "has_dna_seq"]
+
+    # Pillar supplementary (ClinVar, gnomAD, MutPred2, ClinGen, etc.)
+    cols += [c for c in df.columns if c.startswith("pillar__")]
+    cols += [
+        "pillar_dataset_id", "pillar_flag", "functional_class_pillar",
+        "mavedb_urn", "hgnc_id",
+    ]
+
+    return _dedup(cols)
+
+
+def _dedup(cols: list[str]) -> list[str]:
+    """Return cols with duplicates removed, preserving order."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for c in cols:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
 
 
 def _build_summary(df: pd.DataFrame) -> list[str]:

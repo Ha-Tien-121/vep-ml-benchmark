@@ -214,6 +214,7 @@ def run_pipeline(
 
         from pipeline.transformers import (
             add_sequences,
+            add_protein_substitution_col,
             harmonize_scores,
             resolve_transcripts,
         )
@@ -221,13 +222,14 @@ def run_pipeline(
         master = resolve_transcripts(master)
         master = harmonize_scores(master)
         master = add_sequences(master)
+        master = add_protein_substitution_col(master)
     else:
         logger.info("STEP 4: Transforms — SKIPPED (--skip-transforms)")
 
     # ── STEP 5: Scoring ──────────────────────────────────────────────
     if not skip_scoring:
         logger.info("=" * 70)
-        logger.info("STEP 5: Scoring (AlphaMissense / ESM / Evo2)")
+        logger.info("STEP 5: Scoring (AlphaMissense / ESM / Evo2 / SpliceAI)")
         logger.info("=" * 70)
 
         active_scorers = scorers or ["alphamissense", "esm", "evo2"]
@@ -253,6 +255,10 @@ def run_pipeline(
                 model_name=evo2_model or EVO2_DEFAULT_MODEL,
                 device=device,
             )
+
+        if "spliceai" in active_scorers:
+            from pipeline.scorers.score_spliceai import score_spliceai
+            master = score_spliceai(master)
     else:
         logger.info("STEP 5: Scoring — SKIPPED (--skip-scoring)")
 
@@ -309,7 +315,7 @@ def main() -> None:
         "--scorers",
         type=lambda s: s.split(","),
         default=None,
-        help="Comma-separated list of scorers to run (default: alphamissense,esm,evo2)",
+        help="Comma-separated list of scorers to run (default: alphamissense,esm,evo2; available: alphamissense,esm,evo2,spliceai)",
     )
     parser.add_argument("--esm-model", default=None, help="ESM model variant (default: esmc_300m)")
     parser.add_argument("--evo2-model", default=None, help="Evo2 model variant (default: evo2_7b)")
