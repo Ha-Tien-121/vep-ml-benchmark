@@ -224,11 +224,12 @@ ALPHAMISSENSE_ZENODO_URL = (
 )
 ALPHAMISSENSE_DB_PATH = CACHE_DIR / "alphamissense_hg38.db"
 
-# SpliceAI: precomputed scores from Illumina BaseSpace (manual download required).
+# SpliceAI: precomputed scores from Ensembl/BaseSpace (manual download required).
 # Supports VCF (.vcf, .vcf.gz) or TSV (.tsv, .tsv.gz, .txt, .csv) inputs.
 # Set to None to disable SpliceAI scoring entirely.
+# Scores for variants in the master DataFrame are cached to
+# data/cache/scorer_results/spliceai_scores.parquet after the first VCF scan.
 SPLICEAI_FILE = CACHE_DIR / "spliceai_scores.raw.snv.ensembl_mane_v1.4.grch38.vcf.gz"
-SPLICEAI_DB_PATH = CACHE_DIR / "spliceai_hg38.db"
 
 ESM_DEFAULT_MODEL = "esmc_300m"
 EVO2_DEFAULT_MODEL = "evo2_7b"
